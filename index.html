@@ -262,6 +262,32 @@ html[data-theme="dark"] .btn.danger{color:#c98a7c}
   background:url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'160'%20height%3D'160'%3E%3Cfilter%20id%3D'n'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.82'%20numOctaves%3D'2'%20stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D'160'%20height%3D'160'%20filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E");
   background-size:160px 160px}
 
+/* Passcode lock. Soft gate only; the code is intentionally visible in this file. */
+.lock{position:fixed;inset:0;z-index:75;background:var(--paper);display:none;place-items:center;
+  padding:calc(env(safe-area-inset-top) + 36px) 20px calc(env(safe-area-inset-bottom) + 40px);
+  transition:opacity .28s var(--ease-out)}
+.lock.show{display:grid}
+.lock.gone{opacity:0;pointer-events:none}
+.lockcard{width:100%;max-width:300px;text-align:center}
+.lock .glyph-sm{font-family:var(--font-display);font-size:25px;letter-spacing:-.02em;color:var(--ink)}
+.lock-label{font-size:14px;color:var(--ink-2);margin-top:10px;margin-bottom:36px;letter-spacing:.02em}
+.pin-dots{display:flex;gap:20px;justify-content:center;margin-bottom:48px}
+.pin-dots .pd{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--ink-3);
+  transition:background .18s var(--ease-out),border-color .18s,transform .18s}
+.pin-dots .pd.on{background:var(--accent);border-color:var(--accent)}
+.pin-dots.err .pd{border-color:var(--danger)}
+.pin-dots.err .pd.on{background:var(--danger)}
+.pin-dots.shake{animation:shake .5s}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,72px);gap:22px;justify-content:center}
+.key{width:72px;height:72px;border-radius:50%;border:1px solid var(--hairline-2);background:var(--surface);
+  font-size:26px;color:var(--ink);font-family:var(--font-body);display:grid;place-items:center;
+  transition:transform .1s var(--ease-out),background .2s}
+.key:active{transform:scale(.92);background:var(--raised)}
+.key.ghost{border:none;background:none;pointer-events:none}
+.key-del{border:none;background:none;color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){.pin-dots.shake{animation:none}.key:active{transform:none}}
+
 #splash{
   position:fixed;inset:0;z-index:var(--z-splash);background:var(--paper);
   display:grid;place-items:center;transition:opacity .8s var(--ease-out);
@@ -340,6 +366,28 @@ html[data-theme="dark"] .btn.danger{color:#c98a7c}
     <div class="line"></div>
     <div class="wm eyebrow" style="margin-top:20px">Personal Operating System</div>
     <div class="load"></div>
+  </div>
+</div>
+
+<div id="lock" class="lock" aria-hidden="true">
+  <div class="lockcard">
+    <div class="glyph-sm">Atelier</div>
+    <div class="lock-label" id="lockLabel">Enter passcode</div>
+    <div class="pin-dots" id="pinDots"><span class="pd"></span><span class="pd"></span><span class="pd"></span><span class="pd"></span></div>
+    <div class="keypad">
+      <button class="key" data-action="pin-key" data-k="1">1</button>
+      <button class="key" data-action="pin-key" data-k="2">2</button>
+      <button class="key" data-action="pin-key" data-k="3">3</button>
+      <button class="key" data-action="pin-key" data-k="4">4</button>
+      <button class="key" data-action="pin-key" data-k="5">5</button>
+      <button class="key" data-action="pin-key" data-k="6">6</button>
+      <button class="key" data-action="pin-key" data-k="7">7</button>
+      <button class="key" data-action="pin-key" data-k="8">8</button>
+      <button class="key" data-action="pin-key" data-k="9">9</button>
+      <div class="key ghost" aria-hidden="true"></div>
+      <button class="key" data-action="pin-key" data-k="0">0</button>
+      <button class="key key-del" data-action="pin-del" aria-label="Delete"></button>
+    </div>
   </div>
 </div>
 
@@ -423,7 +471,8 @@ const I={
   cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.6"/><path d="M3.5 9.7h17M8 3v3.6M16 3v3.6"/>',
   clip:'<rect x="6.5" y="4" width="11" height="17" rx="2"/><path d="M9.5 4V2.8h5V4M9.5 10h5M9.5 14h3"/>',
   work:'<path d="M12 3.2 20.5 7.6 12 12 3.5 7.6z"/><path d="M4 11.8 12 16.2 20 11.8M4 15.6 12 20 20 15.6"/>',
-  link:'<path d="M9 15l6-6M10.5 6.5l1-1a3.5 3.5 0 015 5l-1 1M13.5 17.5l-1 1a3.5 3.5 0 01-5-5l1-1"/>'
+  link:'<path d="M9 15l6-6M10.5 6.5l1-1a3.5 3.5 0 015 5l-1 1M13.5 17.5l-1 1a3.5 3.5 0 01-5-5l1-1"/>',
+  del:'<path d="M8.5 6h11a1.2 1.2 0 011.2 1.2v9.6a1.2 1.2 0 01-1.2 1.2h-11L3 12z"/><path d="M13.3 10l4 4M17.3 10l-4 4"/>'
 };
 const svg=(p,w=20)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="${w}" height="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 
@@ -1301,6 +1350,8 @@ document.addEventListener("click",(e)=>{
     case "export-data":exportData();break;
     case "reset-data":if(confirm("Reset everything? This cannot be undone.")){S=defaults();S.onboarded=true;save();closeSheet();render();}break;
 
+    case "pin-key":pinKey(a.dataset.k);break;
+    case "pin-del":pinDel();break;
     case "sheet-close":closeSheet();break;
   }
 });
@@ -1387,6 +1438,49 @@ function boot(){
   else{render();}
 }
 
+// ============================================================
+//  PASSCODE LOCK
+//  Soft gate so a casual finder of the URL can't walk straight in.
+//  NOTE: this is NOT real security — the code below is client-side and
+//  visible to anyone who views the source. It is intentionally public.
+// ============================================================
+const PIN = "3323";               // <-- passcode, intentionally in plain sight
+let unlocked = false, pinBuf = "";
+function lockOrBoot(){ if(unlocked) boot(); else showLock(); }
+function showLock(){
+  const el=$("#lock"); if(!el){boot();return;}
+  el.classList.add("show"); el.classList.remove("gone"); el.setAttribute("aria-hidden","false");
+  const del=el.querySelector(".key-del"); if(del && !del.innerHTML.trim()) del.innerHTML=svg(I.del,26);
+  pinBuf=""; pinDots();
+}
+function pinDots(){
+  const d=$("#pinDots"); if(!d)return;
+  [...d.children].forEach((s,i)=>s.classList.toggle("on", i<pinBuf.length));
+}
+function pinKey(k){
+  if(unlocked||pinBuf.length>=4)return;
+  pinBuf+=k; haptic(4); pinDots();
+  if(pinBuf.length===4) setTimeout(()=>{ pinBuf===PIN ? pinUnlock() : pinError(); }, 130);
+}
+function pinDel(){ if(pinBuf.length){pinBuf=pinBuf.slice(0,-1);pinDots();haptic(3);} }
+function pinError(){
+  const d=$("#pinDots"); if(d){d.classList.add("err","shake");}
+  haptic(30);
+  setTimeout(()=>{ if(d)d.classList.remove("err","shake"); pinBuf=""; pinDots(); }, 500);
+}
+function pinUnlock(){
+  unlocked=true; haptic(8);
+  const el=$("#lock");
+  if(el){ el.classList.add("gone");
+    setTimeout(()=>{ el.classList.remove("show","gone"); el.setAttribute("aria-hidden","true"); boot(); }, 280);
+  } else boot();
+}
+document.addEventListener("keydown",(e)=>{
+  const el=$("#lock"); if(!el||!el.classList.contains("show"))return;
+  if(/^[0-9]$/.test(e.key)) pinKey(e.key);
+  else if(e.key==="Backspace") pinDel();
+});
+
 // Splash: a real loading gate. Hold until webfonts resolve (no font swap on
 // first paint), with a minimum on-screen time so it never flashes and a hard
 // cap so a slow/blocked font load can never hang the app.
@@ -1398,7 +1492,7 @@ function boot(){
   function finish(){
     if(closed)return;closed=true;
     const s=$("#splash");if(s)s.classList.add("gone");
-    boot();
+    lockOrBoot();
   }
   function whenReady(){ setTimeout(finish, Math.max(0, MIN-(now()-t0))); }
   function start(){
