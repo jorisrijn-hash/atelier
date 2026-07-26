@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#1B1915" media="(prefers-color-scheme: dark)" />
 <!-- Icons. The inline SVG keeps a tab icon in the single-file preview; the file
      references below resolve once deployed alongside index.html. -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231B1915'/%3E%3Ctext x='32' y='43' text-anchor='middle' fill='%23ECE6DA' font-family='Georgia,serif' font-weight='700' font-size='40'%3EA%3C/text%3E%3Crect x='24.5' y='48' width='15' height='1.8' rx='0.9' fill='%23C3A671'/%3E%3C/svg%3E" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2322332B'/%3E%3Ctext x='32' y='43' text-anchor='middle' fill='%23ECE6DA' font-family='Georgia,serif' font-weight='700' font-size='40'%3EA%3C/text%3E%3Crect x='24.5' y='48' width='15' height='1.8' rx='0.9' fill='%23C3A671'/%3E%3C/svg%3E" />
 <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
@@ -47,6 +47,7 @@ html[data-theme="light"]{
   --hairline:#E4DDCF; --hairline-2:#D6CCB8;
   --ink:#2A2824; --ink-2:#5F594E; --ink-3:#736A5A;
   --gold:#8F7343; --gold-line:#B49768; --gold-soft:rgba(143,115,67,.10); --danger:#9a5a4e;
+  --accent:#3C5A46; --accent-line:#5E7E6B; --accent-soft:rgba(60,90,70,.10);
   --shadow:0 1px 2px rgba(42,40,36,.04),0 8px 30px rgba(42,40,36,.06);
   --scrim:rgba(42,40,36,.28);
 }
@@ -55,6 +56,7 @@ html[data-theme="dark"]{
   --hairline:#332F29; --hairline-2:#413B32;
   --ink:#ECE6DA; --ink-2:#ABA091; --ink-3:#968C7B;
   --gold:#C3A671; --gold-line:#8F7A55; --gold-soft:rgba(195,166,113,.10); --danger:#c98a7c;
+  --accent:#9BB8A5; --accent-line:#6E8C79; --accent-soft:rgba(155,184,165,.12);
   --shadow:0 1px 2px rgba(0,0,0,.30),0 12px 40px rgba(0,0,0,.35);
   --scrim:rgba(10,9,7,.55);
 }
@@ -238,7 +240,7 @@ html[data-theme="dark"] .btn.danger{color:#c98a7c}
 .slider:focus-visible::-webkit-slider-thumb{outline:2px solid var(--gold-line);outline-offset:2px}
 .field select,.select{width:100%;background:var(--surface);border:1px solid var(--hairline);border-radius:13px;padding:13px 15px;font-size:15px;color:var(--ink);font-family:var(--font-body);appearance:none;-webkit-appearance:none}
 .field select:focus,.select:focus{border-color:var(--gold-line);outline:none}
-.classrow.isnext{border-left:2px solid var(--gold-line);padding-left:15px;margin-left:-17px}
+.classrow.isnext{border-left:2px solid var(--accent-line);padding-left:15px;margin-left:-17px}
 
 /* choice grid (mood, etc) */
 .choices{display:flex;gap:8px;flex-wrap:wrap}
@@ -255,6 +257,11 @@ html[data-theme="dark"] .btn.danger{color:#c98a7c}
 .empty p{font-size:13.5px;max-width:34ch;margin:0 auto}
 
 /* ============================== SPLASH ============================== */
+/* Film grain: subtle material texture over the scrolling canvas (both themes) */
+.grain{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.05;
+  background:url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'160'%20height%3D'160'%3E%3Cfilter%20id%3D'n'%3E%3CfeTurbulence%20type%3D'fractalNoise'%20baseFrequency%3D'0.82'%20numOctaves%3D'2'%20stitchTiles%3D'stitch'%2F%3E%3CfeColorMatrix%20type%3D'saturate'%20values%3D'0'%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D'160'%20height%3D'160'%20filter%3D'url(%23n)'%2F%3E%3C%2Fsvg%3E");
+  background-size:160px 160px}
+
 #splash{
   position:fixed;inset:0;z-index:var(--z-splash);background:var(--paper);
   display:grid;place-items:center;transition:opacity .8s var(--ease-out);
@@ -325,6 +332,7 @@ html[data-theme="dark"] .btn.danger{color:#c98a7c}
 </style>
 </head>
 <body>
+<div class="grain" aria-hidden="true"></div>
 
 <div id="splash">
   <div class="mark">
@@ -395,11 +403,11 @@ const fmtDate=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'long'
 
 /* icons (lucide-style, inline, 1.5 stroke) */
 const I={
-  daily:'<path d="M12 3v2M12 19v2M3 12h2M19 12h2M12 8a4 4 0 100 8 4 4 0 000-8z"/>',
-  academy:'<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5A2.5 2.5 0 016.5 18H20"/>',
+  daily:'<circle cx="12" cy="10.5" r="3.6"/><path d="M3.5 15.5h17M6.5 19h11"/>',
+  academy:'<path d="M12 6.6C10.2 5.4 8 4.8 5.6 4.8 4.8 4.8 4.2 5.3 4.2 6.1v10c0 .8.6 1.3 1.4 1.3 2.4 0 4.6.6 6.4 1.7 1.8-1.1 4-1.7 6.4-1.7.8 0 1.4-.5 1.4-1.3v-10c0-.8-.6-1.3-1.4-1.3-2.4 0-4.6.6-6.4 1.8zM12 6.6v11.5"/>',
   body:'<path d="M12 3v18M5 8c3 0 4 2 7 2s4-2 7-2M5 15c3 0 4 2 7 2s4-2 7-2"/>',
-  deep:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  vision:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="2.5"/>',
+  deep:'<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/>',
+  vision:'<path d="M12 4C12.5 9 15 11.5 20 12 15 12.5 12.5 15 12 20 11.5 15 9 12.5 4 12 9 11.5 11.5 9 12 4Z"/>',
   check:'<path d="M20 6L9 17l-5-5"/>',
   chevron:'<path d="M9 6l6 6-6 6"/>',
   back:'<path d="M15 6l-6 6 6 6"/>',
@@ -412,8 +420,10 @@ const I={
   settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
   copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/>',
   pin:'<path d="M12 2v7M8 9h8l-1 5H9zM11 14v8"/>',
-  cal:'<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>',
-  clip:'<rect x="6.5" y="4" width="11" height="17" rx="2"/><path d="M9.5 4V2.8h5V4M9.5 10h5M9.5 14h3"/>'
+  cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.6"/><path d="M3.5 9.7h17M8 3v3.6M16 3v3.6"/>',
+  clip:'<rect x="6.5" y="4" width="11" height="17" rx="2"/><path d="M9.5 4V2.8h5V4M9.5 10h5M9.5 14h3"/>',
+  work:'<path d="M12 3.2 20.5 7.6 12 12 3.5 7.6z"/><path d="M4 11.8 12 16.2 20 11.8M4 15.6 12 20 20 15.6"/>',
+  link:'<path d="M9 15l6-6M10.5 6.5l1-1a3.5 3.5 0 015 5l-1 1M13.5 17.5l-1 1a3.5 3.5 0 01-5-5l1-1"/>'
 };
 const svg=(p,w=20)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="${w}" height="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 
@@ -432,43 +442,22 @@ function seed7(base,spread){return Array.from({length:7},()=>Math.round((base+(M
 function defaults(){
   return {
     onboarded:false,
+    v:3,
     profile:{name:"",goal:"",theme:"system"},
     tab:"daily",
     daily:{date:today(),focus:{text:"",done:false},waterL:0,mood:null,
       session:{subject:"",active:false},
       quoteIdx:Math.floor(Math.random()*QUOTES.length)},
-    schedule:{classes:[
-      {id:uid(),subject:"Databases II",day:0,start:"09:00",end:"10:45",room:"B1.04",teacher:"Dr. Meijer"},
-      {id:uid(),subject:"Web Development",day:0,start:"11:00",end:"12:45",room:"A2.10",teacher:"J. Bakker"},
-      {id:uid(),subject:"Networking",day:2,start:"13:30",end:"15:15",room:"C0.02",teacher:"P. de Vries"},
-      {id:uid(),subject:"Security",day:3,start:"09:00",end:"10:45",room:"B1.04",teacher:"Dr. Meijer"},
-      {id:uid(),subject:"Project work",day:4,start:"10:00",end:"12:45",room:"Studio",teacher:""}
-    ]},
-    coursework:[
-      {id:uid(),title:"ERD assignment",subject:"Databases II",due:isoAdd(today(),3),status:"doing",grade:"",notes:"Normalise to 3NF."},
-      {id:uid(),title:"Portfolio site",subject:"Web Development",due:isoAdd(today(),9),status:"todo",grade:"",notes:""},
-      {id:uid(),title:"Subnetting worksheet",subject:"Networking",due:isoAdd(today(),-2),status:"done",grade:"8.0",notes:""}
-    ],
+    schedule:{classes:[]},
+    coursework:[],
     academy:{q:"",open:null,domains:[
-      {id:"prog",name:"Programming",topics:[
-        {id:uid(),title:"Data structures",mastered:true,notes:"Arrays, maps, trees. Big-O intuition.",snippet:"const memo = new Map();",cards:[{q:"O(1) lookup?",a:"Hash map"}]},
-        {id:uid(),title:"Async & promises",mastered:false,notes:"",snippet:"await Promise.all(tasks);",cards:[]},
-      ],resources:[{t:"Refactoring UI",u:""}]},
-      {id:"net",name:"Networking",topics:[
-        {id:uid(),title:"OSI model",mastered:true,notes:"7 layers, physical to application.",snippet:"",cards:[]},
-        {id:uid(),title:"TCP vs UDP",mastered:false,notes:"",snippet:"",cards:[]},
-      ],resources:[]},
-      {id:"sec",name:"Security",topics:[
-        {id:uid(),title:"OWASP Top 10",mastered:false,notes:"",snippet:"",cards:[]},
-      ],resources:[]},
-      {id:"db",name:"Databases",topics:[
-        {id:uid(),title:"Normalisation",mastered:false,notes:"",snippet:"",cards:[]},
-        {id:uid(),title:"Indexing",mastered:false,notes:"",snippet:"CREATE INDEX idx ON t(col);",cards:[]},
-      ],resources:[]},
-      {id:"biz",name:"Business",topics:[
-        {id:uid(),title:"Pricing a service",mastered:false,notes:"Value-based over hourly.",snippet:"",cards:[]},
-      ],resources:[]},
+      {id:"bdm",abbr:"BDM",name:"Business & Data Management",topics:[],resources:[]},
+      {id:"ism",abbr:"ISM",name:"Information Security Management",topics:[],resources:[]},
+      {id:"id",abbr:"ID",name:"Innovative Development",topics:[],resources:[]},
+      {id:"nse",abbr:"NSE",name:"Network & Systems Engineering",topics:[],resources:[]},
+      {id:"se",abbr:"SE",name:"Software Engineering",topics:[],resources:[]},
     ]},
+    projects:[],
     deep:{minutes:50,task:"",remaining:50*60,running:false},
     vision:{sections:{
       future:[{type:"note",text:"Calm, focused, in command of my craft and my time."}],
@@ -490,7 +479,13 @@ const VISION_SECTIONS=[
 let S=store.get();
 if(!S){S=defaults();store.set(S);}
 else{ // shallow migration guard
+  const prevV=S.v||0;
   const d=defaults();for(const k in d){if(S[k]===undefined)S[k]=d[k];}
+  // v2: clear the seeded example timetable/coursework once (kept empty until the user adds their own)
+  if(prevV<2){S.schedule={classes:[]};S.coursework=[];S.v=2;}
+  // v3: switch the knowledge base to his five study tracks
+  if(prevV<3){S.academy.domains=defaults().academy.domains;S.academy.open=null;S.academy.q="";S.v=3;}
+  store.set(S);
 }
 function save(){store.set(S);}
 
@@ -524,7 +519,7 @@ function toast(msg){
 /* ============================================================
    RENDER
    ============================================================ */
-const TABS=[["daily","Daily",I.daily],["academy","Academy",I.academy],["schedule","Schedule",I.cal],["deep","Deep Work",I.deep],["vision","Vision",I.vision]];
+const TABS=[["daily","Daily",I.daily],["academy","Academy",I.academy],["schedule","Schedule",I.cal],["deep","Deep Work",I.deep],["projects","Projects",I.work]];
 
 function renderTabs(){
   const bar=$("#tabbar");
@@ -538,7 +533,7 @@ function render(){
   applyTheme();
   renderTabs();
   const s=$("#screen");
-  const map={daily:viewDaily,academy:viewAcademy,schedule:viewSchedule,vision:viewVision};
+  const map={daily:viewDaily,academy:viewAcademy,schedule:viewSchedule,projects:viewProjects};
   if(S.tab==="deep"){openDeep();return;}
   s.innerHTML="";
   const v=(map[S.tab]||viewDaily)();
@@ -568,7 +563,7 @@ function skeletonEl(id){
   }else if(id==="schedule"){
     inner+=`<div class="skeleton sk-line" style="width:30%;height:11px;margin:4px 0 10px"></div>`;
     inner+=`<div class="skeleton sk-block" style="height:58px"></div>`.repeat(5);
-  }else if(id==="vision"){
+  }else if(id==="projects"){
     inner+=`<div class="skeleton sk-block" style="height:66px"></div>`.repeat(5);
   }else{
     inner+=`<div class="skeleton sk-block" style="height:112px"></div>`;
@@ -748,6 +743,7 @@ function courseworkRow(a){
   const st=done?"Done":(a.status==="doing"?"Doing":"To do");
   const n=daysUntil(a.due);
   const overdue=!done&&n!==null&&n<0;
+  const rightColor=overdue?"var(--danger)":(a.status==="doing"?"var(--accent)":"var(--ink-3)");
   return `<div class="between" data-action="edit-work" data-id="${a.id}" style="padding:15px 0;cursor:pointer;border-bottom:1px solid var(--hairline)">
     <div class="row" style="gap:14px">
       <button class="check ${done?'on':''}" data-action="toggle-work" data-id="${a.id}" aria-label="Toggle done">${svg(I.check,14)}</button>
@@ -756,7 +752,7 @@ function courseworkRow(a){
         <div class="xsmall faint" style="margin-top:3px">${[a.subject,dueLabel(a.due)].filter(Boolean).join(" · ")}${done&&a.grade?" · "+esc(a.grade):""}</div>
       </div>
     </div>
-    <div class="xsmall" style="color:${overdue?'var(--danger)':'var(--ink-3)'};white-space:nowrap">${overdue?"Overdue":st}</div>
+    <div class="xsmall" style="color:${rightColor};white-space:nowrap">${overdue?"Overdue":st}</div>
   </div>`;
 }
 function viewAcademy(){
@@ -790,7 +786,7 @@ function viewAcademy(){
           <div class="mono faint" style="font-size:12px;width:20px">0${i+1}</div>
           <div>
             <div class="serif" style="font-size:21px">${d.name}</div>
-            <div class="xsmall faint" style="margin-top:4px">${q?`${shown} match${shown!==1?'es':''}`:`${m} of ${total} mastered`}</div>
+            <div class="xsmall faint" style="margin-top:4px">${q?`${shown} match${shown!==1?'es':''}`:`${d.abbr||''}${total?` · ${m} of ${total} mastered`:''}`}</div>
           </div>
         </div>
         <div class="row">
@@ -817,7 +813,7 @@ function academyDetail(id){
       <button class="linkbtn" data-action="close-domain">${svg(I.back,18)} Academy</button>
       <button class="linkbtn" data-action="add-topic" data-id="${d.id}">${svg(I.plus,14)} Topic</button>
     </div>
-    <div class="eyebrow">Domain</div>
+    <div class="eyebrow">${d.abbr||'Domain'}</div>
     <h1 style="font-size:34px;margin-top:10px;margin-bottom:28px">${d.name}</h1>
     <div class="stagger">
     ${d.topics.length?d.topics.map(t=>topicBlock(d.id,t)).join(""):emptyState("No topics yet","Add the first thing you want to master here.")}
@@ -862,7 +858,7 @@ function viewSchedule(){
       if(!items.length && di>4) continue; // hide empty weekends
       const isToday=di===todIdx;
       body+=`<div style="margin-bottom:22px">
-        <div class="eyebrow" style="margin-bottom:12px${isToday?';color:var(--gold)':''}">${DAY_LONG[di]}${isToday?" · Today":""}</div>
+        <div class="eyebrow" style="margin-bottom:12px${isToday?';color:var(--accent)':''}">${DAY_LONG[di]}${isToday?" · Today":""}</div>
         ${items.length?items.map(c=>classRow(c,c.id===nextId)).join(""):`<div class="xsmall faint" style="padding:6px 0">No classes</div>`}
       </div>`;
     }
@@ -884,45 +880,46 @@ function classRow(c,isNext){
         <div class="xsmall faint" style="margin-top:3px">${[c.room,c.teacher].filter(Boolean).join(" · ")||"—"}</div>
       </div>
     </div>
-    ${isNext?'<div class="xsmall" style="color:var(--gold);white-space:nowrap">Next</div>':svg(I.chevron,16)}
+    ${isNext?'<div class="xsmall" style="color:var(--accent);white-space:nowrap">Next</div>':svg(I.chevron,16)}
   </div>`;
 }
 
-/* ---------------- VISION ---------------- */
-function viewVision(){
+/* ---------------- PROJECTS ---------------- */
+const PROJ_STATUS=[["building","Building"],["live","Live"],["idea","Idea"],["paused","Paused"]];
+const PROJ_ORDER={building:0,live:1,idea:2,paused:3};
+function projStatusColor(s){return s==="building"?"var(--accent)":s==="live"?"var(--gold)":"var(--ink-3)";}
+function viewProjects(){
   const w=el("div");
+  const list=S.projects.slice().sort((a,b)=>(PROJ_ORDER[a.status]??9)-(PROJ_ORDER[b.status]??9));
+  const count=s=>S.projects.filter(p=>p.status===s).length;
   w.innerHTML=`
-    <div class="topbar"><div><div class="eyebrow">The long view</div><div class="title" style="margin-top:10px">Vision</div></div></div>
+    <div class="topbar">
+      <div><div class="eyebrow">What you're building</div><div class="title" style="margin-top:10px">Projects</div></div>
+      <button class="linkbtn" data-action="add-project">${svg(I.plus,14)} Project</button>
+    </div>
+    <div class="row" style="gap:10px;margin-bottom:22px">
+      ${statChip(count("building"),"Building")}${statChip(count("live"),"Live")}${statChip(count("idea"),"Ideas")}
+    </div>
     <div class="stagger">
-    ${VISION_SECTIONS.map(([key,name],i)=>{
-      const items=S.vision.sections[key]||[];
-      return `<section style="margin-bottom:34px">
-        <div class="between" style="margin-bottom:16px">
-          <div class="row" style="gap:14px">
-            <div class="mono faint" style="font-size:12px">0${i+1}</div>
-            <div class="serif" style="font-size:22px">${name}</div>
-          </div>
-          <button class="linkbtn" data-action="add-vision" data-key="${key}">${svg(I.plus,14)}</button>
-        </div>
-        <div class="gold-rule" style="margin-bottom:16px"></div>
-        ${items.length?items.map((it,idx)=>visionItem(key,idx,it)).join(""):
-          `<div class="faint small" style="padding:4px 0 6px">Nothing pinned yet.</div>`}
-      </section>`;
-    }).join("")}
+    ${list.length?list.map(projectRow).join(""):emptyState("No projects yet","Add a client site, a side project, or an idea you want to ship.")}
     </div>`;
   return w;
 }
-function visionItem(key,idx,it){
-  if(it.type==="pin"){
-    return `<div class="row" style="gap:12px;padding:9px 0;align-items:flex-start">
-      <div style="color:var(--gold);margin-top:2px">${svg(I.pin,15)}</div>
-      <div class="small" style="flex:1;line-height:1.55">${it.text.replace(/</g,'&lt;')}</div>
-      <button class="linkbtn" data-action="del-vision" data-key="${key}" data-idx="${idx}" aria-label="Remove">×</button>
-    </div>`;
-  }
-  return `<div class="between" style="align-items:flex-start;padding:9px 0">
-    <div class="serif" style="flex:1;font-size:17px;line-height:1.5;color:var(--ink-2);font-style:italic">${it.text.replace(/</g,'&lt;')}</div>
-    <button class="linkbtn" data-action="del-vision" data-key="${key}" data-idx="${idx}" aria-label="Remove" style="margin-left:12px">×</button>
+function projectRow(p){
+  const label=(PROJ_STATUS.find(s=>s[0]===p.status)||["","Idea"])[1];
+  const sub=[p.client,p.next].filter(Boolean).join(" · ");
+  return `<div class="between" data-action="edit-project" data-id="${p.id}" style="padding:16px 0;cursor:pointer;border-bottom:1px solid var(--hairline);align-items:flex-start">
+    <div class="row" style="gap:14px;align-items:flex-start">
+      <div class="dot" style="width:8px;height:8px;border-radius:50%;margin-top:8px;background:${projStatusColor(p.status)};flex:none"></div>
+      <div>
+        <div class="serif" style="font-size:19px;${p.status==='paused'?'opacity:.6':''}">${esc(p.title)}</div>
+        ${sub?`<div class="xsmall faint" style="margin-top:3px;line-height:1.5">${esc(sub)}</div>`:''}
+      </div>
+    </div>
+    <div class="row" style="gap:10px">
+      ${p.url?`<a class="linkbtn" href="${esc(p.url)}" target="_blank" rel="noopener" data-action="stop" aria-label="Open link">${svg(I.link,15)}</a>`:''}
+      <div class="xsmall" style="color:${projStatusColor(p.status)};white-space:nowrap">${label}</div>
+    </div>
   </div>`;
 }
 
@@ -1273,11 +1270,21 @@ document.addEventListener("click",(e)=>{
     case "delete-topic":{const dm=S.academy.domains.find(x=>x.id===a.dataset.did);dm.topics=dm.topics.filter(x=>x.id!==a.dataset.id);save();closeSheet();render();break;}
     case "copy-snippet":{const s=decodeURIComponent(a.dataset.snip);navigator.clipboard&&navigator.clipboard.writeText(s).then(()=>toast("Copied")).catch(()=>toast("Copy unavailable"));break;}
 
-    /* vision */
-    case "add-vision":sheetAddVision(a.dataset.key);break;
-    case "commit-vision":{const key=a.dataset.key;const text=($("#v_text").value||"").trim();const type=$("#v_pin")&&$("#v_pin").classList.contains("on")?"pin":"note";if(text){S.vision.sections[key].push({type,text});save();}closeSheet();render();break;}
-    case "toggle-pin":{const b=$("#v_pin");b.classList.toggle("on");break;}
-    case "del-vision":{S.vision.sections[a.dataset.key].splice(+a.dataset.idx,1);save();render();break;}
+    /* projects */
+    case "add-project":sheetProject();break;
+    case "edit-project":sheetProject(a.dataset.id);break;
+    case "project-status":{const seg=$("#p_seg");if(seg)seg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===a));break;}
+    case "save-project":{
+      const st=($("#p_seg .on")&&$("#p_seg .on").dataset.v)||"idea";
+      let url=($("#p_url").value||"").trim();if(url&&!/^https?:\/\//i.test(url))url="https://"+url;
+      const obj={title:($("#p_title").value||"").trim(),client:($("#p_client").value||"").trim(),status:st,next:($("#p_next").value||"").trim(),url,notes:($("#p_notes").value||"").trim()};
+      if(!obj.title){toast("Add a title.");break;}
+      const id=a.dataset.id;
+      if(id){Object.assign(S.projects.find(x=>x.id===id),obj);}else{S.projects.push({id:uid(),...obj});}
+      save();closeSheet();render();break;
+    }
+    case "delete-project":{S.projects=S.projects.filter(x=>x.id!==a.dataset.id);save();closeSheet();render();break;}
+    case "stop":break;
 
     /* deep work */
     case "deep-toggle":if(S.deep.running){pauseDeep();}else{if(S.deep.remaining<=0)S.deep.remaining=S.deep.minutes*60;startDeep(false);save();}break;
@@ -1298,16 +1305,19 @@ document.addEventListener("click",(e)=>{
   }
 });
 
-function sheetAddVision(key){
-  const name=(VISION_SECTIONS.find(s=>s[0]===key)||["",""])[1];
-  openSheet(`${sheetHead("Vision",name)}
-    <div class="field"><label>Add a note or a pinned inspiration</label><textarea id="v_text" placeholder="Write what you're reaching for."></textarea></div>
-    <div class="row" style="margin-top:14px;gap:12px">
-      <button class="choice on" id="v_pin" data-action="toggle-pin">Pin it</button>
-      <span class="xsmall faint">Pinned items show with a marker.</span>
-    </div>
-    <button class="btn" data-action="commit-vision" data-key="${key}">Add</button>`);
-  setTimeout(()=>$("#v_text")&&$("#v_text").focus(),350);
+function sheetProject(id){
+  const p=id?S.projects.find(x=>x.id===id):{title:"",client:"",status:"building",next:"",url:"",notes:""};
+  const seg=PROJ_STATUS.map(([v,l])=>`<button class="${p.status===v?'on':''}" data-action="project-status" data-v="${v}">${l}</button>`).join("");
+  openSheet(`${sheetHead("Projects",id?"Edit project":"New project")}
+    <div class="field"><label>Title</label><input id="p_title" value="${esc(p.title)}" placeholder="e.g. Client website"/></div>
+    <div class="field"><label>Client / context</label><input id="p_client" value="${esc(p.client)}" placeholder="e.g. client name, or personal"/></div>
+    <div class="field"><label>Status</label><div class="seg" id="p_seg" style="margin-top:4px">${seg}</div></div>
+    <div class="field"><label>Next action</label><input id="p_next" value="${esc(p.next)}" placeholder="e.g. Ship the contact form"/></div>
+    <div class="field"><label>Link</label><input id="p_url" value="${esc(p.url)}" placeholder="yourdomain.com" inputmode="url"/></div>
+    <div class="field"><label>Notes</label><textarea id="p_notes" placeholder="Optional">${(p.notes||'').replace(/</g,'&lt;')}</textarea></div>
+    <button class="btn" data-action="save-project" ${id?`data-id="${id}"`:''}>${id?"Save":"Add project"}</button>
+    ${id?`<button class="btn danger" data-action="delete-project" data-id="${id}">Delete project</button>`:''}`);
+  setTimeout(()=>$("#p_title")&&$("#p_title").focus(),350);
 }
 function sheetDeepDuration(){
   openSheet(`${sheetHead("Deep Work","Session length")}
@@ -1351,7 +1361,7 @@ document.addEventListener("input",(e)=>{
    GESTURES — horizontal swipe between tabs
    ============================================================ */
 let tsx=0,tsy=0,swiping=false;
-const ORDER=["daily","academy","schedule","deep","vision"];
+const ORDER=["daily","academy","schedule","deep","projects"];
 document.getElementById("app").addEventListener("touchstart",(e)=>{
   if(e.touches.length!==1)return;tsx=e.touches[0].clientX;tsy=e.touches[0].clientY;swiping=true;
 },{passive:true});
