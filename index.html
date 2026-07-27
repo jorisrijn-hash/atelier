@@ -496,7 +496,7 @@ function defaults(){
     v:4,
     profile:{name:"",goal:"",theme:"system"},
     tab:"daily",
-    daily:{date:today(),focus:{text:"",done:false},waterL:0,mood:null,
+    daily:{date:today(),focus:{text:"",done:false,noteId:null},waterL:0,mood:null,
       session:{subject:"",active:false},
       quoteIdx:Math.floor(Math.random()*QUOTES.length)},
     schedule:{classes:[]},
@@ -554,11 +554,11 @@ function save(){store.set(S);}
 /* roll the day forward */
 (function rollDay(){
   if(S.daily.date!==today()){
-    // Preserve the day's focus by saving it as a note before the day resets.
+    // A focus set today is already a synced note. Only archive an older one that never became a note.
     const ft=(S.daily.focus.text||"").trim();
-    if(ft) S.notes.push({id:uid(),date:S.daily.date,text:ft,kind:"focus",notionId:null,updatedAt:Date.now(),dirty:true});
+    if(ft && !S.daily.focus.noteId) S.notes.push({id:uid(),date:S.daily.date,text:ft,kind:"focus",notionId:null,updatedAt:Date.now(),dirty:true});
     S.daily.date=today();
-    S.daily.waterL=0;S.daily.mood=null;S.daily.focus={text:"",done:false};
+    S.daily.waterL=0;S.daily.mood=null;S.daily.focus={text:"",done:false,noteId:null};
     S.daily.quoteIdx=Math.floor(Math.random()*QUOTES.length);
     save();
   }
@@ -1307,7 +1307,16 @@ document.addEventListener("click",(e)=>{
     /* daily */
     case "toggle-focus":e.stopPropagation();d.focus.done=!d.focus.done;save();haptic();render();break;
     case "edit-focus":sheetFocus();break;
-    case "save-focus":d.focus.text=($("#f_focus").value||"").trim();save();closeSheet();render();break;
+    case "save-focus":{
+      const t=($("#f_focus").value||"").trim();
+      d.focus.text=t;
+      if(t){
+        let n=d.focus.noteId?S.notes.find(x=>x.id===d.focus.noteId):null;
+        if(n){n.text=t;n.date=today();n.updatedAt=Date.now();n.dirty=true;}
+        else{n={id:uid(),date:today(),text:t,kind:"focus",notionId:null,updatedAt:Date.now(),dirty:true};S.notes.push(n);d.focus.noteId=n.id;}
+      }
+      save();closeSheet();render();syncNotes({});break;
+    }
     case "edit-session":sheetSession();break;
     case "save-session":d.session.subject=($("#f_subj").value||"").trim();d.session.active=!!d.session.subject;save();closeSheet();render();break;
     case "edit-mood":sheetMood();break;
