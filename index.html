@@ -70,9 +70,10 @@ body{
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   font-size:16px;line-height:1.5;letter-spacing:-0.01em;
   overscroll-behavior-y:none;
+  touch-action:manipulation;
   transition:background .6s var(--ease-out),color .6s var(--ease-out);
 }
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea{font:inherit;color:inherit;background:none;border:none;outline:none}
 ::selection{background:var(--gold-soft)}
 :focus-visible{outline:2px solid var(--gold-line);outline-offset:3px;border-radius:3px}
