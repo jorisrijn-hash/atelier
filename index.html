@@ -473,7 +473,8 @@ const I={
   clip:'<rect x="6.5" y="4" width="11" height="17" rx="2"/><path d="M9.5 4V2.8h5V4M9.5 10h5M9.5 14h3"/>',
   work:'<path d="M12 3.2 20.5 7.6 12 12 3.5 7.6z"/><path d="M4 11.8 12 16.2 20 11.8M4 15.6 12 20 20 15.6"/>',
   link:'<path d="M9 15l6-6M10.5 6.5l1-1a3.5 3.5 0 015 5l-1 1M13.5 17.5l-1 1a3.5 3.5 0 01-5-5l1-1"/>',
-  del:'<path d="M8.5 6h11a1.2 1.2 0 011.2 1.2v9.6a1.2 1.2 0 01-1.2 1.2h-11L3 12z"/><path d="M13.3 10l4 4M17.3 10l-4 4"/>'
+  del:'<path d="M8.5 6h11a1.2 1.2 0 011.2 1.2v9.6a1.2 1.2 0 01-1.2 1.2h-11L3 12z"/><path d="M13.3 10l4 4M17.3 10l-4 4"/>',
+  sync:'<path d="M4.5 12a7.5 7.5 0 0112.8-5.3L20 9M20 4v5h-5M19.5 12a7.5 7.5 0 01-12.8 5.3L4 15M4 20v-5h5"/>'
 };
 const svg=(p,w=20)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="${w}" height="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 
@@ -492,7 +493,7 @@ function seed7(base,spread){return Array.from({length:7},()=>Math.round((base+(M
 function defaults(){
   return {
     onboarded:false,
-    v:3,
+    v:4,
     profile:{name:"",goal:"",theme:"system"},
     tab:"daily",
     daily:{date:today(),focus:{text:"",done:false},waterL:0,mood:null,
@@ -517,7 +518,8 @@ function defaults(){
       health:[{type:"note",text:"Lean, strong, unhurried. Sleep as a priority, not a leftover."}],
       lifestyle:[],travel:[{type:"note",text:"A long, quiet winter somewhere warm."}],design:[]
     }},
-    journal:[]
+    notes:[],
+    sync:{lastPull:null}
   };
 }
 const VISION_SECTIONS=[
@@ -535,6 +537,16 @@ else{ // shallow migration guard
   if(prevV<2){S.schedule={classes:[]};S.coursework=[];S.v=2;}
   // v3: switch the knowledge base to his five study tracks
   if(prevV<3){S.academy.domains=defaults().academy.domains;S.academy.open=null;S.academy.q="";S.v=3;}
+  // v4: rename journal -> notes and add sync fields
+  if(prevV<4){
+    if(!Array.isArray(S.notes))S.notes=[];
+    if(Array.isArray(S.journal)){
+      S.journal.forEach(j=>S.notes.push({id:uid(),date:j.date||today(),text:j.text||"",kind:"note",notionId:null,updatedAt:Date.now(),dirty:true}));
+      delete S.journal;
+    }
+    if(!S.sync)S.sync={lastPull:null};
+    S.v=4;
+  }
   store.set(S);
 }
 function save(){store.set(S);}
@@ -542,8 +554,11 @@ function save(){store.set(S);}
 /* roll the day forward */
 (function rollDay(){
   if(S.daily.date!==today()){
+    // Preserve the day's focus by saving it as a note before the day resets.
+    const ft=(S.daily.focus.text||"").trim();
+    if(ft) S.notes.push({id:uid(),date:S.daily.date,text:ft,kind:"focus",notionId:null,updatedAt:Date.now(),dirty:true});
     S.daily.date=today();
-    S.daily.waterL=0;S.daily.mood=null;S.daily.focus.done=false;
+    S.daily.waterL=0;S.daily.mood=null;S.daily.focus={text:"",done:false};
     S.daily.quoteIdx=Math.floor(Math.random()*QUOTES.length);
     save();
   }
@@ -688,7 +703,7 @@ function viewDaily(){
         <div class="eyebrow" style="margin-top:12px">${qa}</div>
       </section>
 
-      <button class="linkbtn" data-action="open-journal" style="margin-top:22px">${svg(I.plus,14)} Journal a thought</button>
+      <button class="linkbtn" data-action="open-notes" style="margin-top:22px">${svg(I.clip,15)} Notes</button>
     </div>`;
   return w;
 }
@@ -1151,15 +1166,37 @@ function sheetMood(){
       ${labels.map(([v,l])=>`<button class="choice ${S.daily.mood===v?'on':''}" data-action="set-mood" data-v="${v}">${l}</button>`).join("")}
     </div>`);
 }
-function sheetJournal(){
-  openSheet(`${sheetHead("Journal","A thought for today")}
-    <div class="field"><textarea id="f_journal" placeholder="Write freely. It stays on this device."></textarea></div>
-    <button class="btn" data-action="save-journal">Save entry</button>
-    ${S.journal.length?`<hr class="hairline" style="margin:26px 0 18px"><div class="eyebrow" style="margin-bottom:14px">Recent</div>
-      ${S.journal.slice(-3).reverse().map(j=>`<div style="padding:10px 0;border-bottom:1px solid var(--hairline)">
-        <div class="xsmall faint">${fmtDate(j.date)}</div>
-        <div class="small muted" style="margin-top:5px;line-height:1.55">${j.text.replace(/</g,'&lt;')}</div></div>`).join("")}`:''}`);
-  setTimeout(()=>$("#f_journal")&&$("#f_journal").focus(),350);
+function sheetNotes(){
+  const list=S.notes.filter(n=>!n.deleted).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  openSheet(`${sheetHead("Notes","Everything you capture")}
+    <div class="field"><textarea id="f_note" placeholder="Write a note. Syncs to Notion."></textarea></div>
+    <button class="btn" data-action="save-note">Add note</button>
+    <div class="between" style="margin:24px 0 10px">
+      <div class="eyebrow">Recent</div>
+      <button class="linkbtn" id="syncBtn" data-action="sync-notes">${svg(I.sync,14)} Sync</button>
+    </div>
+    ${list.length?list.slice(0,40).map(noteRow).join(""):`<div class="xsmall faint" style="padding:6px 0">No notes yet.</div>`}`);
+  setTimeout(()=>$("#f_note")&&$("#f_note").focus(),350);
+}
+function noteRow(n){
+  const tags=[fmtDate(n.date)];
+  if(n.kind==="focus")tags.push("Focus");
+  if(!n.notionId)tags.push("not synced");
+  return `<div class="between" data-action="edit-note" data-id="${n.id}" style="padding:12px 0;border-bottom:1px solid var(--hairline);cursor:pointer;align-items:flex-start">
+    <div style="flex:1;min-width:0">
+      <div class="xsmall faint">${tags.join(" · ")}</div>
+      <div class="small muted" style="margin-top:5px;line-height:1.55">${(n.text||"").replace(/</g,"&lt;")}</div>
+    </div>
+    <button class="linkbtn" data-action="del-note" data-id="${n.id}" aria-label="Delete" style="margin-left:12px;font-size:18px">×</button>
+  </div>`;
+}
+function sheetEditNote(id){
+  const n=S.notes.find(x=>x.id===id); if(!n){sheetNotes();return;}
+  openSheet(`${sheetHead("Notes",n.kind==="focus"?"Saved focus":"Edit note")}
+    <div class="field"><textarea id="f_note">${(n.text||"").replace(/</g,"&lt;")}</textarea></div>
+    <button class="btn" data-action="update-note" data-id="${id}">Save</button>
+    <button class="btn danger" data-action="del-note" data-id="${id}">Delete note</button>`);
+  setTimeout(()=>$("#f_note")&&$("#f_note").focus(),350);
 }
 function sheetReview(){
   const done=S.coursework.filter(a=>a.status==="done").length;
@@ -1277,8 +1314,24 @@ document.addEventListener("click",(e)=>{
     case "set-mood":d.mood=+a.dataset.v;save();haptic();closeSheet();render();break;
     case "go-schedule":setTab("schedule");break;
     case "go-academy":setTab("academy");break;
-    case "open-journal":sheetJournal();break;
-    case "save-journal":{const t=($("#f_journal").value||"").trim();if(t){S.journal.push({date:today(),text:t});save();toast("Saved.");}closeSheet();break;}
+    case "open-notes":sheetNotes();break;
+    case "save-note":{
+      const t=($("#f_note").value||"").trim();
+      if(t){S.notes.push({id:uid(),date:today(),text:t,kind:"note",notionId:null,updatedAt:Date.now(),dirty:true});save();sheetNotes();syncNotes({});}
+      break;
+    }
+    case "edit-note":sheetEditNote(a.dataset.id);break;
+    case "update-note":{
+      const n=S.notes.find(x=>x.id===a.dataset.id);
+      if(n){n.text=($("#f_note").value||"").trim();n.updatedAt=Date.now();n.dirty=true;save();}
+      sheetNotes();syncNotes({});break;
+    }
+    case "del-note":{
+      const n=S.notes.find(x=>x.id===a.dataset.id);
+      if(n){ if(n.notionId){n.deleted=true;n.updatedAt=Date.now();n.dirty=true;} else {S.notes=S.notes.filter(x=>x.id!==n.id);} save(); }
+      sheetNotes();syncNotes({});break;
+    }
+    case "sync-notes":syncNotes({manual:true,refresh:true});break;
     case "open-review":sheetReview();break;
     case "save-review":{toast("Reflection saved.");closeSheet();break;}
 
@@ -1432,11 +1485,86 @@ document.getElementById("app").addEventListener("touchend",(e)=>{
    BOOT
    ============================================================ */
 let booted=false;
+// ============================================================
+//  NOTION SYNC  (talks to /api/notes on your own domain)
+//  Two-way for adds and edits; deletes archive the Notion row.
+//  Last edit wins. Fails quietly offline and retries next sync.
+// ============================================================
+const SYNC = { url: "/api/notes", key: "" }; // if you set SYNC_KEY in Vercel, put the same string here
+let syncing = false;
+
+function syncHeaders(extra){
+  const h = Object.assign({}, extra||{});
+  if(SYNC.key) h["x-sync-key"] = SYNC.key;
+  return h;
+}
+async function apiGet(since){
+  const u = SYNC.url + (since ? ("?since=" + encodeURIComponent(since)) : "");
+  const r = await fetch(u, { headers: syncHeaders() });
+  if(!r.ok) throw new Error("GET " + r.status);
+  return r.json();
+}
+async function apiPost(body){
+  const r = await fetch(SYNC.url, { method:"POST", headers: syncHeaders({"Content-Type":"application/json"}), body: JSON.stringify(body) });
+  if(!r.ok) throw new Error("POST " + r.status);
+  return r.json();
+}
+async function pushNote(n){
+  if(n.deleted){
+    if(n.notionId) await apiPost({ pageId:n.notionId, archived:true });
+    n.dirty=false; return;
+  }
+  const res = await apiPost({ pageId:n.notionId||undefined, appId:n.id, text:n.text||"", date:n.date||"" });
+  if(res && res.page && res.page.pageId) n.notionId = res.page.pageId;
+  n.dirty=false;
+}
+async function pullNotes(){
+  const data = await apiGet(S.sync.lastPull);
+  const remote = (data && data.notes) || [];
+  remote.forEach(r=>{
+    let local = r.appId ? S.notes.find(n=>n.id===r.appId) : S.notes.find(n=>n.notionId===r.pageId);
+    if(r.archived){ if(local){ local.deleted=true; local.dirty=false; } return; }
+    if(local){
+      if(local.deleted) return; // don't resurrect a note deleted here
+      const rt = Date.parse(r.lastEdited)||0;
+      if(rt > (local.updatedAt||0) && !local.dirty){
+        local.text=r.text; if(r.date)local.date=r.date; local.updatedAt=rt; local.notionId=r.pageId;
+      }
+    } else {
+      S.notes.push({ id:r.appId||uid(), date:r.date||today(), text:r.text||"", kind:"note",
+        notionId:r.pageId, updatedAt:Date.parse(r.lastEdited)||Date.now(), dirty:!r.appId });
+    }
+  });
+  if(data && data.serverTime) S.sync.lastPull = data.serverTime;
+}
+async function syncNotes(opts){
+  opts = opts || {};
+  if(syncing) return;
+  syncing = true;
+  const btn = $("#syncBtn"); const orig = btn ? btn.innerHTML : null;
+  if(btn) btn.innerHTML = '<span class="spinner"></span>Syncing';
+  let failed = false;
+  try{
+    await pullNotes();
+    for(const n of S.notes.filter(n=>n.dirty)){
+      try{ await pushNote(n); }catch(e){ failed = true; } // keep dirty, retry later
+    }
+    save();
+  }catch(e){ failed = true; }
+  finally{
+    syncing = false;
+    if(opts.manual) toast(failed ? "Sync issue. Will retry." : "Synced.");
+    // refresh the notes sheet if it is still open
+    if(opts.refresh && $("#sheet") && /data-action="sync-notes"/.test($("#sheet").innerHTML)) sheetNotes();
+    else{ const b=$("#syncBtn"); if(b && orig!==null) b.innerHTML=orig; }
+  }
+}
+
 function boot(){
   if(booted)return;booted=true;
   $("#app").setAttribute("aria-hidden","false");
   if(!S.onboarded){onboarding();}
-  else{render();}
+  else{render();syncNotes({});}
 }
 
 // ============================================================
